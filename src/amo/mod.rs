@@ -3,7 +3,7 @@ use crate::amo::data_types::pipeline::{Funnel, Pipeline};
 pub(crate) use crate::amo::error::{Error, Result};
 use reqwest::{Client, StatusCode};
 
-mod data_types;
+pub(crate) mod data_types;
 mod error;
 
 pub mod city_impl;

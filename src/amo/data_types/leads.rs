@@ -151,14 +151,14 @@ impl From<RawContact> for Contact {
 
 impl RawContact {
     fn val_to_owner(&self) -> bool {
-        self.custom_fields_values
+        let field_opt = self
+            .custom_fields_values
             .iter()
-            .find(|f| f.field_id == 763165)
-            .unwrap()
-            .values[0]
-            .value
-            .clone()
-            .into()
+            .find(|f| f.field_id == 763165);
+        match field_opt {
+            Some(f) => f.values[0].value.clone().into(),
+            None => false,
+        }
     }
     fn val_to_first_name(&self) -> String {
         self.custom_fields_values
