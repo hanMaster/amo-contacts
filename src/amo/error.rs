@@ -6,6 +6,7 @@ pub type Result<T> = ::std::result::Result<T, Error>;
 pub enum Error {
     Request(reqwest::Error),
     Funnels(String),
+    GetContactFailed(String),
 }
 
 // region:    ---From

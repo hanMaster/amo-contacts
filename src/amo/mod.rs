@@ -4,7 +4,9 @@ use crate::amo::data_types::leads::{
 use crate::amo::data_types::pipeline::{Funnel, Pipeline};
 pub(crate) use crate::amo::error::{Error, Result};
 use reqwest::{Client, StatusCode};
+use std::time::Duration;
 use tokio::task::JoinSet;
+use tokio::time::sleep;
 
 pub(crate) mod data_types;
 mod error;
@@ -73,7 +75,7 @@ pub trait AmoClient {
         let mut res: Vec<DealWithContact> = vec![];
 
         let start = tokio::time::Instant::now();
-        for chunk in leads.deals.chunks(7) {
+        for chunk in leads.deals.chunks(20) {
             println!(
                 "processing from {} to {}",
                 chunk.first().unwrap().deal_id,
@@ -87,6 +89,7 @@ pub trait AmoClient {
                 let id = i.contact_id;
                 let deal_id = i.deal_id;
                 set.spawn(async move { get_contact_by_id(bu, t, deal_id, id).await });
+                sleep(Duration::from_millis(300)).await;
             }
 
             let output = set.join_all().await;
@@ -138,8 +141,17 @@ async fn get_contact_by_id(
     let client = Client::new()
         .get(&url)
         .header("Authorization", format!("Bearer {token}"));
-    let response = client.send().await?;
+    let response_res = client.send().await;
 
-    let data = response.json::<RawContact>().await?;
-    Ok((deal_id, data))
+    match response_res {
+        Ok(response) => {
+            if response.status() == StatusCode::OK {
+                let data = response.json::<RawContact>().await?;
+                Ok((deal_id, data))
+            } else {
+                Err(Error::GetContactFailed(response.text().await?))
+            }
+        }
+        Err(e) => Err(Error::Request(e)),
+    }
 }

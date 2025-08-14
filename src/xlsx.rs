@@ -17,7 +17,8 @@ impl Xlsx {
 
         // Create some formats to use in the worksheet.
         let header_format = Format::new().set_bold().set_align(FormatAlign::Center);
-        let row_format = Format::new().set_align(FormatAlign::Center);
+        let align_left = Format::new().set_align(FormatAlign::Left);
+        let align_center = Format::new().set_align(FormatAlign::Center);
 
         // Add a worksheet to the workbook.
         let worksheet = workbook.add_worksheet();
@@ -27,9 +28,9 @@ impl Xlsx {
         worksheet.set_column_width(1, 22)?;
         worksheet.set_column_width(2, 15)?;
         worksheet.set_column_width(3, 22)?;
-        worksheet.set_column_width(4, 32)?;
+        worksheet.set_column_width(4, 60)?;
         worksheet.set_column_width(5, 22)?;
-        worksheet.set_column_width(6, 22)?;
+        worksheet.set_column_width(6, 40)?;
 
         // Write a string without formatting.
         worksheet.write_with_format(0, 0, "Проект", &header_format)?;
@@ -43,31 +44,31 @@ impl Xlsx {
         let mut row_number = 1;
 
         for d in deals {
-            worksheet.write_with_format(row_number as RowNum, 0, project, &row_format)?;
-            worksheet.write_with_format(row_number as RowNum, 1, funnel, &row_format)?;
-            worksheet.write_with_format(row_number as RowNum, 2, d.deal_id, &row_format)?;
+            worksheet.write_with_format(row_number as RowNum, 0, project, &align_center)?;
+            worksheet.write_with_format(row_number as RowNum, 1, funnel, &align_center)?;
+            worksheet.write_with_format(row_number as RowNum, 2, d.deal_id, &align_center)?;
             let is_main = if d.contact.is_main { "Да" } else { "Нет" };
-            worksheet.write_with_format(row_number as RowNum, 3, is_main, &row_format)?;
+            worksheet.write_with_format(row_number as RowNum, 3, is_main, &align_center)?;
             worksheet.write_with_format(
                 row_number as RowNum,
                 4,
-                &format!(
+                format!(
                     "{} {} {}",
                     d.contact.info.first_name, d.contact.info.middle_name, d.contact.info.last_name
                 ),
-                &row_format,
+                &align_left,
             )?;
             worksheet.write_with_format(
                 row_number as RowNum,
                 5,
                 &d.contact.info.phone,
-                &row_format,
+                &align_left,
             )?;
             worksheet.write_with_format(
                 row_number as RowNum,
                 6,
                 &d.contact.info.email,
-                &row_format,
+                &align_left,
             )?;
             row_number += 1;
         }
@@ -76,7 +77,7 @@ impl Xlsx {
         // Save the file to disk.
         let file = File::create(&filename).expect("workbook file creation failed.");
         workbook.save_to_writer(&file)?;
-        
+
         println!("Выгрузка в {filename} завершена успешно!");
 
         Ok(())

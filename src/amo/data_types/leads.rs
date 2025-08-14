@@ -98,6 +98,12 @@ pub enum FlexibleType {
     Str(String),
     Int(i64),
     Bool(bool),
+    Struct(FileInfo),
+}
+
+#[derive(Debug, Deserialize, Clone, PartialEq)]
+pub struct FileInfo {
+    pub file_uuid: String,
 }
 
 impl From<FlexibleType> for i32 {
@@ -106,6 +112,7 @@ impl From<FlexibleType> for i32 {
             FlexibleType::Str(str_value) => str_value.parse().unwrap_or_default(),
             FlexibleType::Int(int_value) => int_value as i32,
             FlexibleType::Bool(_) => 0,
+            FlexibleType::Struct(_) => 0,
         }
     }
 }
@@ -116,6 +123,7 @@ impl From<FlexibleType> for String {
             FlexibleType::Str(str_value) => str_value,
             FlexibleType::Int(_) => "".to_string(),
             FlexibleType::Bool(_) => "".to_string(),
+            FlexibleType::Struct(_) => "".to_string(),
         }
     }
 }
@@ -126,6 +134,7 @@ impl From<FlexibleType> for bool {
             FlexibleType::Str(_) => false,
             FlexibleType::Int(_) => false,
             FlexibleType::Bool(val) => val,
+            FlexibleType::Struct(_) => false,
         }
     }
 }
@@ -162,11 +171,11 @@ pub struct Contact {
 impl From<RawContact> for Contact {
     fn from(raw: RawContact) -> Self {
         let owner = raw.val_to_owner();
-        let first_name = raw.val_to_first_name();
-        let middle_name = raw.val_to_middle_name();
-        let last_name = raw.val_to_last_name();
-        let phone = raw.val_to_phone();
-        let email = raw.val_to_email();
+        let first_name = raw.val_to_str("Имя");
+        let middle_name = raw.val_to_str("Отчество");
+        let last_name = raw.val_to_str("Фамилия");
+        let phone = raw.val_to_str("Телефон");
+        let email = raw.val_to_str("Email");
 
         Self {
             id: raw.id,
@@ -185,60 +194,20 @@ impl RawContact {
         let field_opt = self
             .custom_fields_values
             .iter()
-            .find(|f| f.field_id == 763165);
+            .find(|f| f.field_name == "Собственник");
         match field_opt {
             Some(f) => f.values[0].value.clone().into(),
             None => false,
         }
     }
-    fn val_to_first_name(&self) -> String {
-        self.custom_fields_values
+    fn val_to_str(&self, field_name: &str) -> String {
+        let field_opt = self
+            .custom_fields_values
             .iter()
-            .find(|f| f.field_id == 754911)
-            .unwrap()
-            .values[0]
-            .value
-            .clone()
-            .into()
-    }
-    fn val_to_last_name(&self) -> String {
-        self.custom_fields_values
-            .iter()
-            .find(|f| f.field_id == 754909)
-            .unwrap()
-            .values[0]
-            .value
-            .clone()
-            .into()
-    }
-    fn val_to_middle_name(&self) -> String {
-        self.custom_fields_values
-            .iter()
-            .find(|f| f.field_id == 754913)
-            .unwrap()
-            .values[0]
-            .value
-            .clone()
-            .into()
-    }
-    fn val_to_phone(&self) -> String {
-        self.custom_fields_values
-            .iter()
-            .find(|f| f.field_id == 194059)
-            .unwrap()
-            .values[0]
-            .value
-            .clone()
-            .into()
-    }
-    fn val_to_email(&self) -> String {
-        self.custom_fields_values
-            .iter()
-            .find(|f| f.field_id == 194061)
-            .unwrap()
-            .values[0]
-            .value
-            .clone()
-            .into()
+            .find(|f| f.field_name == field_name);
+        match field_opt {
+            None => "".to_string(),
+            Some(f) => f.values[0].value.clone().into(),
+        }
     }
 }
