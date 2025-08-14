@@ -32,6 +32,7 @@ impl AmoClient for AmoFormatClient {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::amo::get_contact_by_id;
 
     fn setup() -> AmoFormatClient {
         AmoFormatClient::new()
@@ -62,7 +63,11 @@ mod tests {
     #[tokio::test]
     async fn test_get_contact() {
         let client = setup();
-        let contact = client.get_contact_by_id(43136297).await.unwrap();
+        let base_url = client.base_url();
+        let token = client.token().to_string();
+        let contact = get_contact_by_id(base_url, token, 123, 43136297)
+            .await
+            .unwrap();
         println!("{:#?}", contact);
     }
 }

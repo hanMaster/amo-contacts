@@ -7,6 +7,37 @@ pub struct Leads {
 }
 
 #[derive(Deserialize, Debug, Clone)]
+pub struct LeadsPrepared {
+    pub deals: Vec<LeadPrepared>,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct LeadPrepared {
+    pub deal_id: u64,
+    pub contact_id: i64,
+    pub is_main: bool,
+}
+
+impl From<Leads> for LeadsPrepared {
+    fn from(value: Leads) -> Self {
+        let mut res: Vec<LeadPrepared> = vec![];
+        let deals = value._embedded.leads;
+        for d in deals {
+            for c in d._embedded.contacts {
+                let item = LeadPrepared {
+                    deal_id: d.id,
+                    contact_id: c.id,
+                    is_main: c.is_main,
+                };
+                res.push(item);
+            }
+        }
+
+        Self { deals: res }
+    }
+}
+
+#[derive(Deserialize, Debug, Clone)]
 pub struct Links {
     pub next: Option<Link>,
 }
@@ -100,9 +131,9 @@ impl From<FlexibleType> for bool {
 }
 
 #[derive(Debug)]
-pub struct DealWithContacts {
+pub struct DealWithContact {
     pub deal_id: u64,
-    pub contacts: Vec<ContactInfo>,
+    pub contact: ContactInfo,
 }
 
 #[derive(Debug, Deserialize)]

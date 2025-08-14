@@ -1,4 +1,4 @@
-use crate::amo::data_types::leads::DealWithContacts;
+use crate::amo::data_types::leads::DealWithContact;
 use crate::error::Result;
 use rust_xlsxwriter::*;
 use std::fs::File;
@@ -6,14 +6,13 @@ use std::fs::File;
 pub struct Xlsx;
 
 impl Xlsx {
-    pub fn create(project: &str, funnel: &str, deals: Vec<DealWithContacts>) -> Result<()> {
+    pub fn create(project: &str, funnel: &str, deals: Vec<DealWithContact>) -> Result<()> {
         // Create a new Excel file object.
         let mut workbook = Workbook::new();
 
         // Create some formats to use in the worksheet.
         let header_format = Format::new().set_bold().set_align(FormatAlign::Center);
         let row_format = Format::new().set_align(FormatAlign::Center);
-        // let date_format = Format::new().set_num_format("dd.mm.yyyy");
 
         // Add a worksheet to the workbook.
         let worksheet = workbook.add_worksheet();
@@ -39,35 +38,33 @@ impl Xlsx {
         let mut row_number = 1;
 
         for d in deals {
-            for c in d.contacts {
-                worksheet.write_with_format((row_number) as RowNum, 0, project, &row_format)?;
-                worksheet.write_with_format((row_number) as RowNum, 1, funnel, &row_format)?;
-                worksheet.write_with_format((row_number) as RowNum, 2, d.deal_id, &row_format)?;
-                let is_main = if c.is_main { "Да" } else { "Нет" };
-                worksheet.write_with_format((row_number) as RowNum, 3, is_main, &row_format)?;
-                worksheet.write_with_format(
-                    (row_number) as RowNum,
-                    4,
-                    &format!(
-                        "{} {} {}",
-                        c.info.first_name, c.info.middle_name, c.info.last_name
-                    ),
-                    &row_format,
-                )?;
-                worksheet.write_with_format(
-                    (row_number) as RowNum,
-                    5,
-                    &c.info.phone,
-                    &row_format,
-                )?;
-                worksheet.write_with_format(
-                    (row_number) as RowNum,
-                    6,
-                    &c.info.email,
-                    &row_format,
-                )?;
-                row_number += 1;
-            }
+            worksheet.write_with_format(row_number as RowNum, 0, project, &row_format)?;
+            worksheet.write_with_format(row_number as RowNum, 1, funnel, &row_format)?;
+            worksheet.write_with_format(row_number as RowNum, 2, d.deal_id, &row_format)?;
+            let is_main = if d.contact.is_main { "Да" } else { "Нет" };
+            worksheet.write_with_format(row_number as RowNum, 3, is_main, &row_format)?;
+            worksheet.write_with_format(
+                row_number as RowNum,
+                4,
+                &format!(
+                    "{} {} {}",
+                    d.contact.info.first_name, d.contact.info.middle_name, d.contact.info.last_name
+                ),
+                &row_format,
+            )?;
+            worksheet.write_with_format(
+                row_number as RowNum,
+                5,
+                &d.contact.info.phone,
+                &row_format,
+            )?;
+            worksheet.write_with_format(
+                row_number as RowNum,
+                6,
+                &d.contact.info.email,
+                &row_format,
+            )?;
+            row_number += 1;
         }
 
         // Save the file to disk.
@@ -88,37 +85,39 @@ mod tests {
         let project = "Формат";
         let funnel = "Передача ЖК14";
 
-        let deal = DealWithContacts {
+        let deal1 = DealWithContact {
             deal_id: 123,
-            contacts: vec![
-                ContactInfo {
-                    is_main: true,
-                    info: Contact {
-                        id: 123,
-                        owner: false,
-                        first_name: "Василий".to_string(),
-                        middle_name: "Иванович".to_string(),
-                        last_name: "Пупкин".to_string(),
-                        phone: "+79244567895".to_string(),
-                        email: "abc@mail.ru".to_string(),
-                    },
+            contact: ContactInfo {
+                is_main: true,
+                info: Contact {
+                    id: 123,
+                    owner: false,
+                    first_name: "Василий".to_string(),
+                    middle_name: "Иванович".to_string(),
+                    last_name: "Пупкин".to_string(),
+                    phone: "+79244567895".to_string(),
+                    email: "abc@mail.ru".to_string(),
                 },
-                ContactInfo {
-                    is_main: false,
-                    info: Contact {
-                        id: 456,
-                        owner: false,
-                        first_name: "Мария".to_string(),
-                        middle_name: "Ивановна".to_string(),
-                        last_name: "Пупкина".to_string(),
-                        phone: "+79244567896".to_string(),
-                        email: "def@mail.ru".to_string(),
-                    },
-                },
-            ],
+            },
         };
 
-        let data = vec![deal];
+        let deal2 = DealWithContact {
+            deal_id: 345,
+            contact: ContactInfo {
+                is_main: false,
+                info: Contact {
+                    id: 456,
+                    owner: false,
+                    first_name: "Мария".to_string(),
+                    middle_name: "Ивановна".to_string(),
+                    last_name: "Пупкина".to_string(),
+                    phone: "+79244567896".to_string(),
+                    email: "def@mail.ru".to_string(),
+                },
+            },
+        };
+
+        let data = vec![deal1, deal2];
         Xlsx::create(project, funnel, data).unwrap();
     }
 }
