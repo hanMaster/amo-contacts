@@ -7,6 +7,11 @@ pub struct Xlsx;
 
 impl Xlsx {
     pub fn create(project: &str, funnel: &str, deals: Vec<DealWithContact>) -> Result<()> {
+        if deals.is_empty() {
+            println!("Нет данных для выгрузки");
+            return Ok(());
+        }
+
         // Create a new Excel file object.
         let mut workbook = Workbook::new();
 
@@ -67,10 +72,12 @@ impl Xlsx {
             row_number += 1;
         }
 
+        let filename = format!("{project} {funnel}.xlsx");
         // Save the file to disk.
-        let file = File::create(format!("{project}_{funnel}.xlsx"))
-            .expect("workbook file creation failed.");
+        let file = File::create(&filename).expect("workbook file creation failed.");
         workbook.save_to_writer(&file)?;
+        
+        println!("Выгрузка в {filename} завершена успешно!");
 
         Ok(())
     }

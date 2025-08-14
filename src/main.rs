@@ -41,6 +41,6 @@ async fn main() -> Result<()> {
         let data = client.get_funnel_leads(funnel.id).await?;
         Xlsx::create(&project, &funnel.name, data)?;
     }
-    println!("Выгрузка завершена успешно!");
+
     Ok(())
 }

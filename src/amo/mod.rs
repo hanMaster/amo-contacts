@@ -82,7 +82,6 @@ pub trait AmoClient {
             let mut set = JoinSet::new();
 
             for i in chunk {
-                println!("processing {:?}", i);
                 let bu = base_url.clone();
                 let t = token.clone();
                 let id = i.contact_id;
@@ -136,7 +135,6 @@ async fn get_contact_by_id(
     contact_id: i64,
 ) -> Result<(u64, RawContact)> {
     let url = format!("{}contacts/{}", base_url, contact_id);
-    println!("url: {}", url);
     let client = Client::new()
         .get(&url)
         .header("Authorization", format!("Bearer {token}"));
