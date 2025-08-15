@@ -1,8 +1,7 @@
 use crate::error::{Error, Result};
-use std::env;
-use std::str::FromStr;
-use std::sync::OnceLock;
 use dotenvy::dotenv;
+use std::env;
+use std::sync::OnceLock;
 
 pub fn config() -> &'static Config {
     static INSTANCE: OnceLock<Config> = OnceLock::new();
