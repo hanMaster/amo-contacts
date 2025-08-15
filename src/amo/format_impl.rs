@@ -1,10 +1,13 @@
 use crate::amo::AmoClient;
 use crate::config::config;
+use crate::profit::ProfitbaseClient;
+use crate::PROJECTS;
 
 pub struct AmoFormatClient {
     account_id: &'static str,
     token: &'static str,
     pipeline_id: i64,
+    profitbase_client: ProfitbaseClient,
 }
 
 impl AmoClient for AmoFormatClient {
@@ -13,6 +16,11 @@ impl AmoClient for AmoFormatClient {
             account_id: &config().AMO_FORMAT_ACCOUNT,
             token: &config().AMO_FORMAT_TOKEN,
             pipeline_id: 1983685,
+            profitbase_client: ProfitbaseClient::new(
+                &config().PROF_FORMAT_ACCOUNT,
+                &config().PROF_FORMAT_API_KEY,
+                PROJECTS[1],
+            ),
         }
     }
 
@@ -22,6 +30,10 @@ impl AmoClient for AmoFormatClient {
 
     fn pipeline_id(&self) -> i64 {
         self.pipeline_id
+    }
+
+    fn profitbase_client(&self) -> &ProfitbaseClient {
+        &self.profitbase_client
     }
 
     fn token(&self) -> &str {

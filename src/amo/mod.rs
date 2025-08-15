@@ -1,8 +1,10 @@
 use crate::amo::data_types::leads::{
     Contact, ContactInfo, DealWithContact, Leads, LeadsPrepared, RawContact,
+    RawData,
 };
 use crate::amo::data_types::pipeline::{Funnel, Pipeline};
 pub(crate) use crate::amo::error::{Error, Result};
+use crate::profit::ProfitbaseClient;
 use reqwest::{Client, StatusCode};
 use std::time::Duration;
 use tokio::task::JoinSet;
@@ -52,7 +54,7 @@ pub trait AmoClient {
         }
         let mut data = response.json::<Leads>().await?;
         let mut next = data._links.next.take();
-        let mut leads = self.extract_deals(data.into()).await?;
+        let mut leads = self.extract_deals(data).await?;
 
         while next.is_some() {
             let client = Client::new()
@@ -61,34 +63,55 @@ pub trait AmoClient {
             let mut data = client.send().await?.json::<Leads>().await?;
 
             next = data._links.next.take();
-            let leads_in_while = self.extract_deals(data.into()).await?;
+            let leads_in_while = self.extract_deals(data).await?;
 
             leads.extend(leads_in_while);
         }
         Ok(leads)
     }
 
-    async fn extract_deals(&self, leads: LeadsPrepared) -> Result<Vec<DealWithContact>> {
+    async fn extract_deals(&self, leads: Leads) -> Result<Vec<DealWithContact>> {
         let base_url = self.base_url();
-        let token = self.token().to_string();
+        let amo_token = self.token().to_string();
+        let profit_token = self.profitbase_client().get_profit_token().await?;
+
+        let deal_ids: Vec<u64> = leads._embedded.leads.iter().map(|d| d.id).collect();
+
+        println!("deal_ids: {:?}", deal_ids);
+        let mut profit_with_contact_summary: Vec<RawData> = vec![];
+
+        for lead in leads._embedded.leads {
+            println!("call profit for: {}", lead.id);
+            let profit_data = self
+                .profitbase_client()
+                .get_profit_data(lead.id, &profit_token)
+                .await?;
+            profit_with_contact_summary.push(RawData {
+                profit_data,
+                contacts: lead._embedded.contacts,
+            });
+        }
+
+        println!("profit_res: {:#?}", profit_with_contact_summary);
+
 
         let mut res: Vec<DealWithContact> = vec![];
 
         let start = tokio::time::Instant::now();
-        for chunk in leads.deals.chunks(20) {
+        for chunk in profit_with_contact_summary.chunks(20) {
             println!(
                 "processing from {} to {}",
-                chunk.first().unwrap().deal_id,
-                chunk.last().unwrap().deal_id
+                chunk.first().unwrap().profit_data.deal_id,
+                chunk.last().unwrap().profit_data.deal_id
             );
             let mut set = JoinSet::new();
 
             for i in chunk {
                 let bu = base_url.clone();
-                let t = token.clone();
-                let id = i.contact_id;
-                let deal_id = i.deal_id;
-                let is_main = i.is_main;
+                let t = amo_token.clone();
+                let id = i.contacts[0].id;
+                let deal_id = i.profit_data.deal_id;
+                let is_main = i.contacts[0].is_main;
                 set.spawn(async move { get_contact_by_id(bu, t, deal_id, is_main, id).await });
                 sleep(Duration::from_millis(300)).await;
             }
@@ -129,6 +152,8 @@ pub trait AmoClient {
     }
 
     fn pipeline_id(&self) -> i64;
+
+    fn profitbase_client(&self) -> &ProfitbaseClient;
 
     fn token(&self) -> &str;
 }

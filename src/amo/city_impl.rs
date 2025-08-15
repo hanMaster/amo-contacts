@@ -1,10 +1,13 @@
 use crate::amo::AmoClient;
 use crate::config::config;
+use crate::profit::ProfitbaseClient;
+use crate::PROJECTS;
 
 pub struct AmoCityClient {
     account_id: &'static str,
     token: &'static str,
     pipeline_id: i64,
+    profitbase_client: ProfitbaseClient,
 }
 
 impl AmoClient for AmoCityClient {
@@ -13,6 +16,11 @@ impl AmoClient for AmoCityClient {
             account_id: &config().AMO_CITY_ACCOUNT,
             token: &config().AMO_CITY_TOKEN,
             pipeline_id: 7486918,
+            profitbase_client: ProfitbaseClient::new(
+                &config().PROF_CITY_ACCOUNT,
+                &config().PROF_CITY_API_KEY,
+                PROJECTS[0],
+            ),
         }
     }
 
@@ -22,6 +30,10 @@ impl AmoClient for AmoCityClient {
 
     fn pipeline_id(&self) -> i64 {
         self.pipeline_id
+    }
+
+    fn profitbase_client(&self) -> &ProfitbaseClient {
+        &self.profitbase_client
     }
 
     fn token(&self) -> &str {

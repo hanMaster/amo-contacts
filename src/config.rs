@@ -22,6 +22,11 @@ pub struct Config {
     pub AMO_CITY_TOKEN: String,
     pub AMO_FORMAT_ACCOUNT: String,
     pub AMO_FORMAT_TOKEN: String,
+    // -- Profitbase
+    pub PROF_CITY_ACCOUNT: String,
+    pub PROF_CITY_API_KEY: String,
+    pub PROF_FORMAT_ACCOUNT: String,
+    pub PROF_FORMAT_API_KEY: String,
 }
 
 impl Config {
@@ -32,6 +37,10 @@ impl Config {
             AMO_CITY_TOKEN: get_env("AMO_CITY_TOKEN")?,
             AMO_FORMAT_ACCOUNT: get_env("AMO_FORMAT_ACCOUNT")?,
             AMO_FORMAT_TOKEN: get_env("AMO_FORMAT_TOKEN")?,
+            PROF_CITY_ACCOUNT: get_env("PROF_CITY_ACCOUNT")?,
+            PROF_CITY_API_KEY: get_env("PROF_CITY_API_KEY")?,
+            PROF_FORMAT_ACCOUNT: get_env("PROF_FORMAT_ACCOUNT")?,
+            PROF_FORMAT_API_KEY: get_env("PROF_FORMAT_API_KEY")?,
         })
     }
 }

@@ -1,4 +1,5 @@
 use serde::Deserialize;
+use crate::profit::ProfitData;
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Leads {
@@ -210,4 +211,10 @@ impl RawContact {
             Some(f) => f.values[0].value.clone().into(),
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct RawData {
+    pub profit_data: ProfitData,
+    pub contacts: Vec<ContactSummary>,
 }

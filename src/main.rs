@@ -7,10 +7,13 @@ use crate::xlsx::Xlsx;
 use dotenvy::dotenv;
 
 mod amo;
+mod profit;
 mod config;
 mod error;
 mod interface;
 mod xlsx;
+
+pub const PROJECTS: [&str; 2] = ["DNS Сити", "ЖК Формат"];
 
 #[tokio::main]
 async fn main() -> Result<()> {

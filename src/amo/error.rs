@@ -1,3 +1,4 @@
+use crate::profit;
 use std::fmt::{Display, Formatter};
 
 pub type Result<T> = ::std::result::Result<T, Error>;
@@ -7,6 +8,7 @@ pub enum Error {
     Request(reqwest::Error),
     Funnels(String),
     GetContactFailed(String),
+    Profitbase(profit::Error),
 }
 
 // region:    ---From
@@ -15,8 +17,13 @@ impl From<reqwest::Error> for Error {
         Error::Request(e)
     }
 }
-// endregion: ---From
 
+impl From<profit::Error> for Error {
+    fn from(e: profit::Error) -> Self {
+        Error::Profitbase(e)
+    }
+}
+// endregion: ---From
 
 // region:    --- Error boilerplate
 impl Display for Error {
