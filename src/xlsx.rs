@@ -104,7 +104,7 @@ impl Xlsx {
                 7,
                 format!(
                     "{} {} {}",
-                    d.contact.info.first_name, d.contact.info.middle_name, d.contact.info.last_name
+                    d.contact.info.last_name, d.contact.info.first_name, d.contact.info.middle_name
                 ),
                 &align_left,
             )?;
