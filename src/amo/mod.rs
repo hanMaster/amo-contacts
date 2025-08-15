@@ -1,5 +1,5 @@
 use crate::amo::data_types::leads::{
-    Contact, ContactInfo, Leads, ProfitWithContact, RawContact, RawData, RawDataFlat, VecRawData,
+    Contact, ContactInfo, Leads, ProfitWithContact, RawContact, RawDataFlat,
 };
 use crate::amo::data_types::pipeline::{Funnel, Pipeline};
 pub(crate) use crate::amo::error::{Error, Result};
@@ -72,15 +72,10 @@ pub trait AmoClient {
     async fn extract_deals(&self, leads: Leads) -> Result<Vec<ProfitWithContact>> {
         let base_url = self.base_url();
         let amo_token = self.token().to_string();
-        
-
-        let deal_ids: Vec<u64> = leads._embedded.leads.iter().map(|d| d.id).collect();
-
-        println!("deal_ids: {:?}", deal_ids);
 
         let data = self
             .profitbase_client()
-            .collect_profit_data(leads._embedded.leads)
+            .collect_profit_data(leads)
             .await?;
 
         let mut res: Vec<ProfitWithContact> = vec![];
@@ -88,7 +83,7 @@ pub trait AmoClient {
         let start = tokio::time::Instant::now();
         for chunk in data.chunks(20) {
             println!(
-                "processing from {} to {}",
+                "processing contacts from {} to {}",
                 chunk.first().unwrap().profit_data.deal_id,
                 chunk.last().unwrap().profit_data.deal_id
             );
@@ -99,7 +94,7 @@ pub trait AmoClient {
                 let t = amo_token.clone();
                 let clonned_raw_data = i.clone();
                 set.spawn(async move { get_contact_by_id(bu, t, clonned_raw_data).await });
-                sleep(Duration::from_millis(300)).await;
+                sleep(Duration::from_millis(200)).await;
             }
 
             let output = set.join_all().await;

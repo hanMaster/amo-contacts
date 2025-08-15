@@ -148,7 +148,6 @@ mod tests {
             contact: ContactInfo {
                 is_main: true,
                 info: Contact {
-                    id: 123,
                     owner: false,
                     first_name: "Василий".to_string(),
                     middle_name: "Иванович".to_string(),
@@ -164,7 +163,6 @@ mod tests {
             contact: ContactInfo {
                 is_main: false,
                 info: Contact {
-                    id: 456,
                     owner: false,
                     first_name: "Мария".to_string(),
                     middle_name: "Ивановна".to_string(),

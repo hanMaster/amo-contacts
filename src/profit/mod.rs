@@ -1,4 +1,4 @@
-use crate::amo::data_types::leads::{Lead, RawData, RawDataFlat, VecRawData};
+use crate::amo::data_types::leads::{Lead, Leads, RawData, RawDataFlat, VecRawData};
 pub use crate::profit::data_types::deal::{get_ru_object_type, ProfitData};
 use chrono::DateTime;
 use data_types::{auth::AuthResponse, profit_data::ProfitRecord};
@@ -6,10 +6,12 @@ pub(crate) use error::{Error, Result};
 use log::debug;
 use reqwest::{Client, StatusCode};
 use serde_json::json;
+use tokio::task::JoinSet;
 
 mod data_types;
 mod error;
 
+#[derive(Clone)]
 pub struct ProfitbaseClient {
     pub account_id: &'static str,
     pub api_key: &'static str,
@@ -59,11 +61,13 @@ impl ProfitbaseClient {
         }
     }
 
-    pub async fn get_profit_data_by_deal_id(
+    pub async fn get_profit_data_for_lead(
         &self,
-        deal_id: u64,
+        lead: Lead,
         token: &str,
-    ) -> Result<ProfitData> {
+    ) -> Result<(Lead, ProfitData)> {
+        let deal_id = lead.id;
+
         let url = format!(
             "{}/property/deal/{}?access_token={}",
             self.base_url(),
@@ -113,9 +117,8 @@ impl ProfitbaseClient {
                 .unwrap_or(Default::default())
                 .naive_local();
                 let attrs = p.attributes.clone();
-
-                Ok(ProfitData {
-                    deal_id,
+                let profit_data = ProfitData {
+                    deal_id: lead.id,
                     project: self.project.to_string(),
                     house,
                     object_type: p.property_type.clone(),
@@ -123,7 +126,8 @@ impl ProfitbaseClient {
                     facing: attrs.facing.unwrap_or("".to_string()),
                     days_limit: 30,
                     created_on,
-                })
+                };
+                Ok((lead, profit_data))
             } else {
                 Err(Error::ProfitGetDataFailed(data.status))
             }
@@ -132,20 +136,52 @@ impl ProfitbaseClient {
         }
     }
 
-    pub async fn collect_profit_data(&self, leads: Vec<Lead>) -> Result<Vec<RawDataFlat>> {
+    pub async fn collect_profit_data(&self, leads: Leads) -> Result<Vec<RawDataFlat>> {
         let profit_token = self.get_profit_token().await?;
         let mut profit_with_contact_summary: Vec<RawData> = vec![];
 
-        for lead in leads {
-            println!("call profit for: {}", lead.id);
-            let profit_data = self
-                .get_profit_data_by_deal_id(lead.id, &profit_token)
-                .await?;
-            profit_with_contact_summary.push(RawData {
-                profit_data,
-                contacts: lead._embedded.contacts,
-            });
+        let leads = leads._embedded.leads;
+
+        let start = tokio::time::Instant::now();
+        for chunk in leads.chunks(20) {
+            println!(
+                "processing leads from {} to {}",
+                chunk.first().unwrap().id,
+                chunk.last().unwrap().id
+            );
+            let mut set = JoinSet::new();
+
+            for i in chunk {
+                let clonned_token = profit_token.clone();
+                let clonned_lead = i.clone();
+                let cl = self.clone();
+                set.spawn(async move {
+                    cl.get_profit_data_for_lead(clonned_lead, &clonned_token)
+                        .await
+                });
+            }
+
+            let output = set.join_all().await;
+
+            let mut have_error = false;
+            for o in output {
+                if o.is_err() {
+                    eprintln!("Error: {:?}", o.unwrap_err());
+                    have_error = true;
+                } else {
+                    let (lead, profit_data) = o?;
+                    profit_with_contact_summary.push(RawData {
+                        profit_data,
+                        contacts: lead._embedded.contacts,
+                    });
+                }
+            }
+
+            if have_error {
+                panic!("Processing failed");
+            }
         }
+        println!("Finished in {:?}", start.elapsed());
 
         let data: Vec<RawDataFlat> = VecRawData {
             rows: profit_with_contact_summary,
@@ -179,17 +215,5 @@ mod tests {
         let token_result = client.get_profit_token().await;
         assert!(token_result.is_ok());
         println!("{:?}", token_result.unwrap());
-    }
-
-    #[tokio::test]
-    async fn get_profit_data() {
-        let client = setup();
-        let token = client.get_profit_token().await.unwrap();
-        println!("{:?}", token);
-        let data = client
-            .get_profit_data_by_deal_id(26835973, &token)
-            .await
-            .unwrap();
-        println!("{:?}", data);
     }
 }
