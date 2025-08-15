@@ -14,8 +14,6 @@ pub struct ProfitData {
     #[serde(rename = "houseName")]
     pub house_name: String,
     pub attributes: Attrs,
-    #[serde(rename = "soldAt")]
-    pub sold_at: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Clone)]

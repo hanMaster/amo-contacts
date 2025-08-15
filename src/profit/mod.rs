@@ -1,6 +1,5 @@
 use crate::amo::data_types::leads::{Lead, Leads, RawData, RawDataFlat, VecRawData};
 pub use crate::profit::data_types::deal::{get_ru_object_type, ProfitData};
-use chrono::DateTime;
 use data_types::{auth::AuthResponse, profit_data::ProfitRecord};
 pub(crate) use error::{Error, Result};
 use log::debug;
@@ -98,34 +97,12 @@ impl ProfitbaseClient {
                 };
                 let house = house.parse::<i32>().unwrap_or(-1);
 
-                let sold_opt = p.sold_at.clone();
-                if sold_opt.is_none() {
-                    let msg = format!(
-                        "Failed to parse dealId: {deal_id}, {}, house: {house}, type: {}, № {}",
-                        self.project, p.property_type, p.number
-                    );
-                    return Err(Error::ProfitGetDataFailed(msg));
-                }
-
-                let sold_at = sold_opt.unwrap();
-
-                // soldAt
-                let created_on = DateTime::parse_from_str(
-                    format!("{} +0000", sold_at).as_str(),
-                    "%Y-%m-%d %H:%M %z",
-                )
-                .unwrap_or(Default::default())
-                .naive_local();
-                let attrs = p.attributes.clone();
                 let profit_data = ProfitData {
                     deal_id: lead.id,
                     project: self.project.to_string(),
                     house,
                     object_type: p.property_type.clone(),
                     object: p.number.parse::<i32>()?,
-                    facing: attrs.facing.unwrap_or("".to_string()),
-                    days_limit: 30,
-                    created_on,
                 };
                 Ok((lead, profit_data))
             } else {
