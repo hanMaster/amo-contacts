@@ -65,7 +65,7 @@ mod tests {
         let client = setup();
         let base_url = client.base_url();
         let token = client.token().to_string();
-        let contact = get_contact_by_id(base_url, token, 123, 43136297)
+        let contact = get_contact_by_id(base_url, token, 123, true, 43136297)
             .await
             .unwrap();
         println!("{:#?}", contact);

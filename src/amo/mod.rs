@@ -88,7 +88,8 @@ pub trait AmoClient {
                 let t = token.clone();
                 let id = i.contact_id;
                 let deal_id = i.deal_id;
-                set.spawn(async move { get_contact_by_id(bu, t, deal_id, id).await });
+                let is_main = i.is_main;
+                set.spawn(async move { get_contact_by_id(bu, t, deal_id, is_main, id).await });
                 sleep(Duration::from_millis(300)).await;
             }
 
@@ -100,12 +101,12 @@ pub trait AmoClient {
                     eprintln!("Error: {:?}", o.unwrap_err());
                     have_error = true;
                 } else {
-                    let (deal_id, raw) = o?;
+                    let (deal_id, is_main, raw) = o?;
                     let contact: Contact = raw.into();
 
                     if contact.owner {
                         let ci = ContactInfo {
-                            is_main: true,
+                            is_main,
                             info: contact,
                         };
                         let dwc = DealWithContact {
@@ -135,8 +136,9 @@ async fn get_contact_by_id(
     base_url: String,
     token: String,
     deal_id: u64,
+    is_main: bool,
     contact_id: i64,
-) -> Result<(u64, RawContact)> {
+) -> Result<(u64, bool, RawContact)> {
     let url = format!("{}contacts/{}", base_url, contact_id);
     let client = Client::new()
         .get(&url)
@@ -147,7 +149,7 @@ async fn get_contact_by_id(
         Ok(response) => {
             if response.status() == StatusCode::OK {
                 let data = response.json::<RawContact>().await?;
-                Ok((deal_id, data))
+                Ok((deal_id, is_main, data))
             } else {
                 Err(Error::GetContactFailed(response.text().await?))
             }
