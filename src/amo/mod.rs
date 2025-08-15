@@ -1,6 +1,6 @@
 use crate::amo::data_types::leads::{
-    Contact, ContactInfo, DealWithContact, Leads, LeadsPrepared, RawContact,
-    RawData,
+    Contact, ContactInfo, Leads, ProfitWithContact, RawContact, RawData,
+    RawDataFlat, VecRawData,
 };
 use crate::amo::data_types::pipeline::{Funnel, Pipeline};
 pub(crate) use crate::amo::error::{Error, Result};
@@ -38,7 +38,7 @@ pub trait AmoClient {
             }
         }
     }
-    async fn get_funnel_leads(&self, funnel_id: i64) -> Result<Vec<DealWithContact>> {
+    async fn get_funnel_leads(&self, funnel_id: i64) -> Result<Vec<ProfitWithContact>> {
         let url = format!(
             "{}leads?filter[statuses][0][pipeline_id]={}&filter[statuses][0][status_id]={}&with=contacts",
             self.base_url(),
@@ -70,7 +70,7 @@ pub trait AmoClient {
         Ok(leads)
     }
 
-    async fn extract_deals(&self, leads: Leads) -> Result<Vec<DealWithContact>> {
+    async fn extract_deals(&self, leads: Leads) -> Result<Vec<ProfitWithContact>> {
         let base_url = self.base_url();
         let amo_token = self.token().to_string();
         let profit_token = self.profitbase_client().get_profit_token().await?;
@@ -92,13 +92,15 @@ pub trait AmoClient {
             });
         }
 
-        println!("profit_res: {:#?}", profit_with_contact_summary);
+        let data: Vec<RawDataFlat> = VecRawData {
+            rows: profit_with_contact_summary,
+        }
+        .into();
 
-
-        let mut res: Vec<DealWithContact> = vec![];
+        let mut res: Vec<ProfitWithContact> = vec![];
 
         let start = tokio::time::Instant::now();
-        for chunk in profit_with_contact_summary.chunks(20) {
+        for chunk in data.chunks(20) {
             println!(
                 "processing from {} to {}",
                 chunk.first().unwrap().profit_data.deal_id,
@@ -109,10 +111,8 @@ pub trait AmoClient {
             for i in chunk {
                 let bu = base_url.clone();
                 let t = amo_token.clone();
-                let id = i.contacts[0].id;
-                let deal_id = i.profit_data.deal_id;
-                let is_main = i.contacts[0].is_main;
-                set.spawn(async move { get_contact_by_id(bu, t, deal_id, is_main, id).await });
+                let clonned_raw_data = i.clone();
+                set.spawn(async move { get_contact_by_id(bu, t, clonned_raw_data).await });
                 sleep(Duration::from_millis(300)).await;
             }
 
@@ -124,16 +124,16 @@ pub trait AmoClient {
                     eprintln!("Error: {:?}", o.unwrap_err());
                     have_error = true;
                 } else {
-                    let (deal_id, is_main, raw) = o?;
-                    let contact: Contact = raw.into();
+                    let (raw_data, contact_data) = o?;
+                    let contact: Contact = contact_data.into();
 
                     if contact.owner {
                         let ci = ContactInfo {
-                            is_main,
+                            is_main: raw_data.contact.is_main,
                             info: contact,
                         };
-                        let dwc = DealWithContact {
-                            deal_id,
+                        let dwc = ProfitWithContact {
+                            profit_data: raw_data.profit_data,
                             contact: ci,
                         };
 
@@ -160,11 +160,9 @@ pub trait AmoClient {
 async fn get_contact_by_id(
     base_url: String,
     token: String,
-    deal_id: u64,
-    is_main: bool,
-    contact_id: i64,
-) -> Result<(u64, bool, RawContact)> {
-    let url = format!("{}contacts/{}", base_url, contact_id);
+    raw_data: RawDataFlat,
+) -> Result<(RawDataFlat, RawContact)> {
+    let url = format!("{}contacts/{}", base_url, raw_data.contact.id);
     let client = Client::new()
         .get(&url)
         .header("Authorization", format!("Bearer {token}"));
@@ -173,8 +171,8 @@ async fn get_contact_by_id(
     match response_res {
         Ok(response) => {
             if response.status() == StatusCode::OK {
-                let data = response.json::<RawContact>().await?;
-                Ok((deal_id, is_main, data))
+                let contact_data = response.json::<RawContact>().await?;
+                Ok((raw_data, contact_data))
             } else {
                 Err(Error::GetContactFailed(response.text().await?))
             }

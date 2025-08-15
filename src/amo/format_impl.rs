@@ -19,7 +19,7 @@ impl AmoClient for AmoFormatClient {
             profitbase_client: ProfitbaseClient::new(
                 &config().PROF_FORMAT_ACCOUNT,
                 &config().PROF_FORMAT_API_KEY,
-                PROJECTS[1],
+                PROJECTS[0],
             ),
         }
     }
@@ -70,16 +70,5 @@ mod tests {
         let leads = client.get_funnel_leads(42397663).await.unwrap();
         assert_ne!(0, leads.len());
         println!("{:#?}", leads);
-    }
-
-    #[tokio::test]
-    async fn test_get_contact() {
-        let client = setup();
-        let base_url = client.base_url();
-        let token = client.token().to_string();
-        let contact = get_contact_by_id(base_url, token, 123, true, 43136297)
-            .await
-            .unwrap();
-        println!("{:#?}", contact);
     }
 }

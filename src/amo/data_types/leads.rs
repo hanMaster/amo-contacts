@@ -1,5 +1,5 @@
-use serde::Deserialize;
 use crate::profit::ProfitData;
+use serde::Deserialize;
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Leads {
@@ -140,25 +140,19 @@ impl From<FlexibleType> for bool {
     }
 }
 
-#[derive(Debug)]
-pub struct DealWithContact {
-    pub deal_id: u64,
-    pub contact: ContactInfo,
-}
-
 #[derive(Debug, Deserialize)]
 pub struct RawContact {
     pub id: u64,
     pub custom_fields_values: Vec<CustomField>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ContactInfo {
     pub is_main: bool,
     pub info: Contact,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Contact {
     pub id: u64,
     pub owner: bool,
@@ -217,4 +211,38 @@ impl RawContact {
 pub struct RawData {
     pub profit_data: ProfitData,
     pub contacts: Vec<ContactSummary>,
+}
+
+#[derive(Debug, Clone)]
+pub struct VecRawData {
+    pub rows: Vec<RawData>,
+}
+
+#[derive(Debug, Clone)]
+pub struct RawDataFlat {
+    pub profit_data: ProfitData,
+    pub contact: ContactSummary,
+}
+
+#[derive(Debug, Clone)]
+pub struct ProfitWithContact {
+    pub profit_data: ProfitData,
+    pub contact: ContactInfo,
+}
+
+impl From<VecRawData> for Vec<RawDataFlat> {
+    fn from(value: VecRawData) -> Self {
+        let mut res = Vec::with_capacity(value.rows.len());
+        for row in value.rows {
+            let pd = row.profit_data;
+            for contact in row.contacts {
+                let d = RawDataFlat {
+                    profit_data: pd.clone(),
+                    contact,
+                };
+                res.push(d);
+            }
+        }
+        res
+    }
 }

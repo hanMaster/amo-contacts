@@ -13,15 +13,14 @@ mod error;
 mod interface;
 mod xlsx;
 
-pub const PROJECTS: [&str; 2] = ["DNS Сити", "ЖК Формат"];
+pub const PROJECTS: [&str; 2] = ["ЖК Формат", "DNS Сити"];
 
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv().expect("dotenv init failed");
 
-    let projects = ["ЖК Формат", "ДНС Сити"];
-    let project = read_project(&projects);
-    if project == "ЖК Формат" {
+    let project = read_project(&PROJECTS);
+    if project == PROJECTS[0] {
         let client = AmoFormatClient::new();
         let funnels = client.get_funnels().await?;
         let filtered = funnels
@@ -30,10 +29,10 @@ async fn main() -> Result<()> {
             .collect::<Vec<_>>();
         let funnel = read_funnel(filtered);
         let data = client.get_funnel_leads(funnel.id).await?;
-        Xlsx::create(&project, &funnel.name, data)?;
+        Xlsx::create(&funnel.name, data)?;
     }
 
-    if project == "ДНС Сити" {
+    if project == PROJECTS[1] {
         let client = AmoCityClient::new();
         let funnels = client.get_funnels().await?;
         let filtered = funnels
@@ -42,7 +41,7 @@ async fn main() -> Result<()> {
             .collect::<Vec<_>>();
         let funnel = read_funnel(filtered);
         let data = client.get_funnel_leads(funnel.id).await?;
-        Xlsx::create(&project, &funnel.name, data)?;
+        Xlsx::create(&funnel.name, data)?;
     }
 
     Ok(())

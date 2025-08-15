@@ -1,4 +1,4 @@
-pub use crate::profit::data_types::deal::ProfitData;
+pub use crate::profit::data_types::deal::{ProfitData, get_ru_object_type};
 use chrono::DateTime;
 use data_types::{auth::AuthResponse, profit_data::ProfitRecord};
 pub(crate) use error::{Error, Result};

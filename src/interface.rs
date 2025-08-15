@@ -6,8 +6,10 @@ pub fn read_project(projects: &[&str]) -> String {
 
     while res < 1 {
         println!("Введите номер варианта для выбора проекта");
-        println!("1. ЖК Формат");
-        println!("2. ДНС Сити");
+        for (idx, project) in projects.iter().enumerate() {
+            println!("{}. {}", idx + 1, project);
+        }
+
         let input = read_number();
         if input > 0 && input < projects.len() + 1 {
             res = input;
