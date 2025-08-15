@@ -30,9 +30,12 @@ impl Xlsx {
         worksheet.set_column_width(1, 22)?;
         worksheet.set_column_width(2, 15)?;
         worksheet.set_column_width(3, 22)?;
-        worksheet.set_column_width(4, 60)?;
+        worksheet.set_column_width(4, 22)?;
         worksheet.set_column_width(5, 22)?;
-        worksheet.set_column_width(6, 40)?;
+        worksheet.set_column_width(6, 22)?;
+        worksheet.set_column_width(7, 60)?;
+        worksheet.set_column_width(8, 22)?;
+        worksheet.set_column_width(9, 60)?;
 
         // Write a string without formatting.
         worksheet.write_with_format(0, 0, "Проект", &header_format)?;

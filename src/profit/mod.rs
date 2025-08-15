@@ -1,4 +1,5 @@
-pub use crate::profit::data_types::deal::{ProfitData, get_ru_object_type};
+use crate::amo::data_types::leads::{Lead, RawData, RawDataFlat, VecRawData};
+pub use crate::profit::data_types::deal::{get_ru_object_type, ProfitData};
 use chrono::DateTime;
 use data_types::{auth::AuthResponse, profit_data::ProfitRecord};
 pub(crate) use error::{Error, Result};
@@ -58,7 +59,11 @@ impl ProfitbaseClient {
         }
     }
 
-    pub async fn get_profit_data(&self, deal_id: u64, token: &str) -> Result<ProfitData> {
+    pub async fn get_profit_data_by_deal_id(
+        &self,
+        deal_id: u64,
+        token: &str,
+    ) -> Result<ProfitData> {
         let url = format!(
             "{}/property/deal/{}?access_token={}",
             self.base_url(),
@@ -126,6 +131,28 @@ impl ProfitbaseClient {
             Err(Error::ProfitGetDataFailed(response.text().await?))
         }
     }
+
+    pub async fn collect_profit_data(&self, leads: Vec<Lead>) -> Result<Vec<RawDataFlat>> {
+        let profit_token = self.get_profit_token().await?;
+        let mut profit_with_contact_summary: Vec<RawData> = vec![];
+
+        for lead in leads {
+            println!("call profit for: {}", lead.id);
+            let profit_data = self
+                .get_profit_data_by_deal_id(lead.id, &profit_token)
+                .await?;
+            profit_with_contact_summary.push(RawData {
+                profit_data,
+                contacts: lead._embedded.contacts,
+            });
+        }
+
+        let data: Vec<RawDataFlat> = VecRawData {
+            rows: profit_with_contact_summary,
+        }
+        .into();
+        Ok(data)
+    }
 }
 
 #[cfg(test)]
@@ -159,7 +186,10 @@ mod tests {
         let client = setup();
         let token = client.get_profit_token().await.unwrap();
         println!("{:?}", token);
-        let data = client.get_profit_data(26835973, &token).await.unwrap();
+        let data = client
+            .get_profit_data_by_deal_id(26835973, &token)
+            .await
+            .unwrap();
         println!("{:?}", data);
     }
 }

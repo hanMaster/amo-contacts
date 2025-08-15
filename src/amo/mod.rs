@@ -1,6 +1,5 @@
 use crate::amo::data_types::leads::{
-    Contact, ContactInfo, Leads, ProfitWithContact, RawContact, RawData,
-    RawDataFlat, VecRawData,
+    Contact, ContactInfo, Leads, ProfitWithContact, RawContact, RawData, RawDataFlat, VecRawData,
 };
 use crate::amo::data_types::pipeline::{Funnel, Pipeline};
 pub(crate) use crate::amo::error::{Error, Result};
@@ -73,29 +72,16 @@ pub trait AmoClient {
     async fn extract_deals(&self, leads: Leads) -> Result<Vec<ProfitWithContact>> {
         let base_url = self.base_url();
         let amo_token = self.token().to_string();
-        let profit_token = self.profitbase_client().get_profit_token().await?;
+        
 
         let deal_ids: Vec<u64> = leads._embedded.leads.iter().map(|d| d.id).collect();
 
         println!("deal_ids: {:?}", deal_ids);
-        let mut profit_with_contact_summary: Vec<RawData> = vec![];
 
-        for lead in leads._embedded.leads {
-            println!("call profit for: {}", lead.id);
-            let profit_data = self
-                .profitbase_client()
-                .get_profit_data(lead.id, &profit_token)
-                .await?;
-            profit_with_contact_summary.push(RawData {
-                profit_data,
-                contacts: lead._embedded.contacts,
-            });
-        }
-
-        let data: Vec<RawDataFlat> = VecRawData {
-            rows: profit_with_contact_summary,
-        }
-        .into();
+        let data = self
+            .profitbase_client()
+            .collect_profit_data(leads._embedded.leads)
+            .await?;
 
         let mut res: Vec<ProfitWithContact> = vec![];
 
