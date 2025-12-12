@@ -71,7 +71,6 @@ pub trait AmoClient {
                 match contact_option {
                     Some(raw_contact) => {
                         let c: Contact = raw_contact.into();
-                        println!("{:#?}", c);
                         if c.owner
                             && is_valid_email(&c.email)
                             && c.doc_type.len() > 0
@@ -79,11 +78,13 @@ pub trait AmoClient {
                             && c.doc_number.len() == 6
                         {
                             is_contact_ok = true;
+                        } else {
+                            println!("{:#?}", c);
                         }
                     }
                     None => {}
                 }
-                sleep(Duration::from_millis(200)).await;
+                sleep(Duration::from_millis(100)).await;
             }
             if !is_contact_ok {
                 bad_leads.push(lead.clone());

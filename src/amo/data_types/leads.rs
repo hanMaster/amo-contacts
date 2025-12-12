@@ -55,8 +55,7 @@ impl Display for Lead {
         let project = self.val_to_str("ЖК");
         let house = self.val_to_str("Дом");
         let num = self.val_to_str("Номер помещения");
-        let contacts: Vec<i64> = self._embedded.contacts.iter().map(|c| c.id).collect();
-        write!(f, "ID: {}, ЖК: {}, {}, помещение № {}, контакты: {:?}", self.id, project, house, num, contacts)
+        write!(f, "https://dnscity.amocrm.ru/leads/detail/{}, ЖК: {}, {}, помещение № {}", self.id, project, house, num)
     }
 }
 
