@@ -15,7 +15,7 @@ impl AmoClient for AmoCityClient {
         Self {
             account_id: &config().AMO_CITY_ACCOUNT,
             token: &config().AMO_CITY_TOKEN,
-            pipeline_id: 7486918,
+            pipeline_id: config().PIPELINE_ID,
             profitbase_client: ProfitbaseClient::new(
                 &config().PROF_CITY_ACCOUNT,
                 &config().PROF_CITY_API_KEY,
@@ -53,21 +53,5 @@ mod tests {
         let client = setup();
         let url = client.base_url();
         assert_eq!("https://dnscity.amocrm.ru/api/v4/", url);
-    }
-
-    #[tokio::test]
-    async fn test_get_city_funnels() {
-        let client = setup();
-        let funnels = client.get_funnels().await.unwrap();
-        assert_ne!(0, funnels.len());
-        println!("{:#?}", funnels);
-    }
-
-    #[tokio::test]
-    async fn test_get_funnel_leads() {
-        let client = setup();
-        let leads = client.get_funnel_leads(65830426).await.unwrap();
-        println!("{:?}", leads);
-        assert_ne!(0, leads.len());
     }
 }

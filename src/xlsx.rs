@@ -29,25 +29,27 @@ impl Xlsx {
         worksheet.set_column_width(0, 15)?;
         worksheet.set_column_width(1, 22)?;
         worksheet.set_column_width(2, 15)?;
-        worksheet.set_column_width(3, 22)?;
+        worksheet.set_column_width(3, 15)?;
         worksheet.set_column_width(4, 22)?;
         worksheet.set_column_width(5, 22)?;
         worksheet.set_column_width(6, 22)?;
-        worksheet.set_column_width(7, 60)?;
-        worksheet.set_column_width(8, 22)?;
-        worksheet.set_column_width(9, 60)?;
+        worksheet.set_column_width(7, 22)?;
+        worksheet.set_column_width(8, 60)?;
+        worksheet.set_column_width(9, 22)?;
+        worksheet.set_column_width(10, 60)?;
 
         // Write a string without formatting.
         worksheet.write_with_format(0, 0, "Проект", &header_format)?;
         worksheet.write_with_format(0, 1, "Воронка", &header_format)?;
         worksheet.write_with_format(0, 2, "№ сделки", &header_format)?;
-        worksheet.write_with_format(0, 3, "№ дома", &header_format)?;
-        worksheet.write_with_format(0, 4, "Тип недвижимости", &header_format)?;
-        worksheet.write_with_format(0, 5, "№ объекта", &header_format)?;
-        worksheet.write_with_format(0, 6, "Основной контакт", &header_format)?;
-        worksheet.write_with_format(0, 7, "ФИО", &header_format)?;
-        worksheet.write_with_format(0, 8, "Телефон", &header_format)?;
-        worksheet.write_with_format(0, 9, "Email", &header_format)?;
+        worksheet.write_with_format(0, 3, "Тип договора", &header_format)?;
+        worksheet.write_with_format(0, 4, "№ дома", &header_format)?;
+        worksheet.write_with_format(0, 5, "Тип недвижимости", &header_format)?;
+        worksheet.write_with_format(0, 6, "№ объекта", &header_format)?;
+        worksheet.write_with_format(0, 7, "Основной контакт", &header_format)?;
+        worksheet.write_with_format(0, 8, "ФИО", &header_format)?;
+        worksheet.write_with_format(0, 9, "Телефон", &header_format)?;
+        worksheet.write_with_format(0, 10, "Email", &header_format)?;
 
         let mut row_number = 1;
 
@@ -78,30 +80,37 @@ impl Xlsx {
             worksheet.write_with_format(
                 row_number as RowNum,
                 3,
-                d.profit_data.house,
+                d.deal_type,
                 &align_center,
             )?;
 
             worksheet.write_with_format(
                 row_number as RowNum,
                 4,
-                get_ru_object_type(&d.profit_data.object_type),
+                d.profit_data.house,
                 &align_center,
             )?;
 
             worksheet.write_with_format(
                 row_number as RowNum,
                 5,
+                get_ru_object_type(&d.profit_data.object_type),
+                &align_center,
+            )?;
+
+            worksheet.write_with_format(
+                row_number as RowNum,
+                6,
                 d.profit_data.object,
                 &align_center,
             )?;
 
             let is_main = if d.contact.is_main { "Да" } else { "Нет" };
-            worksheet.write_with_format(row_number as RowNum, 6, is_main, &align_center)?;
+            worksheet.write_with_format(row_number as RowNum, 7, is_main, &align_center)?;
 
             worksheet.write_with_format(
                 row_number as RowNum,
-                7,
+                8,
                 format!(
                     "{} {} {}",
                     d.contact.info.last_name, d.contact.info.first_name, d.contact.info.middle_name
@@ -110,13 +119,13 @@ impl Xlsx {
             )?;
             worksheet.write_with_format(
                 row_number as RowNum,
-                8,
+                9,
                 &d.contact.info.phone,
                 &align_left,
             )?;
             worksheet.write_with_format(
                 row_number as RowNum,
-                9,
+                10,
                 &d.contact.info.email,
                 &align_left,
             )?;
@@ -144,6 +153,7 @@ mod tests {
         let funnel = "Передача ЖК14";
 
         let deal1 = ProfitWithContact {
+            deal_type: "ДКП".to_string(),
             profit_data: Default::default(),
             contact: ContactInfo {
                 is_main: true,
@@ -159,6 +169,7 @@ mod tests {
         };
 
         let deal2 = ProfitWithContact {
+            deal_type: "ДДУ".to_string(),
             profit_data: Default::default(),
             contact: ContactInfo {
                 is_main: false,

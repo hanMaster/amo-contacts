@@ -1,5 +1,7 @@
 use crate::profit::ProfitData;
 use serde::Deserialize;
+use std::fmt::{Display, Formatter};
+use regex::Regex;
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Leads {
@@ -32,9 +34,35 @@ pub struct Lead {
     pub _embedded: LeadEmbedded,
 }
 
+impl Lead {
+    pub fn get_deal_type(&self) -> String {
+        self.val_to_str("Тип договора")
+    }
+    fn val_to_str(&self, field_name: &str) -> String {
+        let field_opt = self
+            .custom_fields_values
+            .iter()
+            .find(|f| f.field_name == field_name);
+        match field_opt {
+            None => "".to_string(),
+            Some(f) => f.values[0].value.clone().into(),
+        }
+    }
+}
+
+impl Display for Lead {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let project = self.val_to_str("ЖК");
+        let house = self.val_to_str("Дом");
+        let num = self.val_to_str("Номер помещения");
+        let contacts: Vec<i64> = self._embedded.contacts.iter().map(|c| c.id).collect();
+        write!(f, "ID: {}, ЖК: {}, {}, помещение № {}, контакты: {:?}", self.id, project, house, num, contacts)
+    }
+}
+
 #[derive(Deserialize, Debug, Clone, PartialEq)]
 pub struct CustomField {
-    pub field_id: u64,
+    // pub field_id: u64,
     pub field_name: String,
     pub values: Vec<Val>,
 }
@@ -44,7 +72,7 @@ pub struct LeadEmbedded {
     pub contacts: Vec<ContactSummary>,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug, Clone, Copy)]
 pub struct ContactSummary {
     pub id: i64,
     pub is_main: bool,
@@ -128,6 +156,9 @@ pub struct Contact {
     pub last_name: String,
     pub phone: String,
     pub email: String,
+    pub doc_type: String,
+    pub doc_serial: String,
+    pub doc_number: String,
 }
 
 impl From<RawContact> for Contact {
@@ -138,6 +169,9 @@ impl From<RawContact> for Contact {
         let last_name = raw.val_to_str("Фамилия");
         let phone = raw.val_to_str("Телефон");
         let email = raw.val_to_str("Email");
+        let doc_type = raw.val_to_str("Тип документа");
+        let doc_serial = raw.val_to_str("Серия паспорта");
+        let doc_number = raw.val_to_str("Номер паспорта");
 
         Self {
             owner,
@@ -146,6 +180,9 @@ impl From<RawContact> for Contact {
             last_name,
             phone,
             email,
+            doc_type,
+            doc_serial,
+            doc_number,
         }
     }
 }
@@ -175,6 +212,7 @@ impl RawContact {
 
 #[derive(Debug, Clone)]
 pub struct RawData {
+    pub deal_type: String,
     pub profit_data: ProfitData,
     pub contacts: Vec<ContactSummary>,
 }
@@ -186,12 +224,14 @@ pub struct VecRawData {
 
 #[derive(Debug, Clone)]
 pub struct RawDataFlat {
+    pub deal_type: String,
     pub profit_data: ProfitData,
     pub contact: ContactSummary,
 }
 
 #[derive(Debug, Clone)]
 pub struct ProfitWithContact {
+    pub deal_type: String,
     pub profit_data: ProfitData,
     pub contact: ContactInfo,
 }
@@ -203,6 +243,7 @@ impl From<VecRawData> for Vec<RawDataFlat> {
             let pd = row.profit_data;
             for contact in row.contacts {
                 let d = RawDataFlat {
+                    deal_type: row.deal_type.clone(),
                     profit_data: pd.clone(),
                     contact,
                 };

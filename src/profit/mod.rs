@@ -85,7 +85,7 @@ impl ProfitbaseClient {
             debug!("JSON parse");
             let data = response.json::<ProfitRecord>().await?;
 
-            debug!("received: {:?}", data);
+            debug!("deal_id: {}, received: {:?}", deal_id, data);
             if data.status == "success" {
                 let p = data.data.first().unwrap();
 
@@ -119,16 +119,24 @@ impl ProfitbaseClient {
 
         let leads = leads._embedded.leads;
 
+        let mut ids = leads.iter().map(|x| x.id).collect::<Vec<_>>();
+        ids.sort();
+        debug!("lead ids: {:?}", ids);
+
         let start = tokio::time::Instant::now();
         for chunk in leads.chunks(20) {
             println!(
-                "processing leads from {} to {}",
+                "[collect_profit_data] processing leads from {} to {}",
                 chunk.first().unwrap().id,
                 chunk.last().unwrap().id
             );
             let mut set = JoinSet::new();
 
             for i in chunk {
+                if i.id == 23625133 {
+                    // 23625133 Тест для умного ЖКХ
+                    continue;
+                }
                 let clonned_token = profit_token.clone();
                 let clonned_lead = i.clone();
                 let cl = self.clone();
@@ -148,6 +156,7 @@ impl ProfitbaseClient {
                 } else {
                     let (lead, profit_data) = o?;
                     profit_with_contact_summary.push(RawData {
+                        deal_type: lead.get_deal_type(),
                         profit_data,
                         contacts: lead._embedded.contacts,
                     });
@@ -155,10 +164,10 @@ impl ProfitbaseClient {
             }
 
             if have_error {
-                panic!("Processing failed");
+                panic!("[collect_profit_data] Processing failed");
             }
         }
-        println!("Finished in {:?}", start.elapsed());
+        println!("[collect_profit_data] Finished in {:?}", start.elapsed());
 
         let data: Vec<RawDataFlat> = VecRawData {
             rows: profit_with_contact_summary,

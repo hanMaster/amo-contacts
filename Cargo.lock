@@ -33,6 +33,7 @@ dependencies = [
  "dotenvy",
  "log",
  "pretty_env_logger",
+ "regex",
  "reqwest",
  "rust_xlsxwriter",
  "serde",
@@ -934,9 +935,9 @@ dependencies = [
 
 [[package]]
 name = "rust_xlsxwriter"
-version = "0.90.0"
+version = "0.92.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4fc4507df5e1c3ab599b1434c3e71ef14684d9b21cfbf1d3f1315cda74a47320"
+checksum = "ca8b9faf2c68874f865272c92493e9bb811e5fdff197a56ecc4748885ec5a874"
 dependencies = [
  "zip",
 ]
@@ -1784,9 +1785,9 @@ dependencies = [
 
 [[package]]
 name = "zip"
-version = "4.3.0"
+version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9aed4ac33e8eb078c89e6cbb1d5c4c7703ec6d299fc3e7c3695af8f8b423468b"
+checksum = "eb2a05c7c36fde6c09b08576c9f7fb4cda705990f73b58fe011abf7dfb24168b"
 dependencies = [
  "arbitrary",
  "crc32fast",
