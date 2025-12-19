@@ -1,7 +1,6 @@
 use crate::profit::ProfitData;
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 use std::fmt::{Display, Formatter};
-use regex::Regex;
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Leads {
@@ -23,13 +22,21 @@ pub struct Link {
 pub struct Embedded {
     pub leads: Vec<Lead>,
 }
+fn null_to_default<'de, D, T>(deserializer: D) -> Result<T, D::Error>
+where
+    D: Deserializer<'de>,
+    T: Default + Deserialize<'de>,
+{
+    let opt = Option::deserialize(deserializer)?;
+    Ok(opt.unwrap_or_default())
+}
 
-#[allow(dead_code)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct Lead {
     pub id: u64,
     pub name: String,
     pub created_at: i64,
+    #[serde(deserialize_with = "null_to_default")]
     pub custom_fields_values: Vec<CustomField>,
     pub _embedded: LeadEmbedded,
 }
@@ -38,7 +45,7 @@ impl Lead {
     pub fn get_deal_type(&self) -> String {
         self.val_to_str("Тип договора")
     }
-    fn val_to_str(&self, field_name: &str) -> String {
+    pub fn val_to_str(&self, field_name: &str) -> String {
         let field_opt = self
             .custom_fields_values
             .iter()
@@ -160,6 +167,16 @@ pub struct Contact {
     pub doc_number: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct ContactForExport {
+    pub first_name: String,
+    pub last_name: String,
+    pub middle_name: String,
+    pub phone: String,
+    pub email: String,
+    pub client_id: i64,
+}
+
 impl From<RawContact> for Contact {
     fn from(raw: RawContact) -> Self {
         let owner = raw.val_to_owner();
@@ -187,7 +204,7 @@ impl From<RawContact> for Contact {
 }
 
 impl RawContact {
-    fn val_to_owner(&self) -> bool {
+    pub fn val_to_owner(&self) -> bool {
         let field_opt = self
             .custom_fields_values
             .iter()
@@ -197,7 +214,7 @@ impl RawContact {
             None => false,
         }
     }
-    fn val_to_str(&self, field_name: &str) -> String {
+    pub fn val_to_str(&self, field_name: &str) -> String {
         let field_opt = self
             .custom_fields_values
             .iter()

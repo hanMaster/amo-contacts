@@ -1,4 +1,4 @@
-use crate::amo::data_types::leads::{Contact, Lead, Leads, RawContact};
+use crate::amo::data_types::leads::{Contact, ContactForExport, Lead, Leads, RawContact};
 pub(crate) use crate::amo::error::{Error, Result};
 use crate::config::config;
 use crate::profit::ProfitbaseClient;
@@ -17,12 +17,25 @@ pub trait AmoClient {
     fn new() -> Self;
     fn base_url(&self) -> String;
 
-    async fn check_contacts(&self) -> Result<()> {
+    // async fn check_contacts(&self) -> Result<()> {
+    //     let leads = self.get_funnel_leads(config().FUNNEL).await?;
+    //     let filtered = self.filter_deals(&leads).await?;
+    //     for lead in filtered {
+    //         info!("{}", lead);
+    //     }
+    //     Ok(())
+    // }
+
+    async fn collect_contacts(&self) -> Result<()> {
         let leads = self.get_funnel_leads(config().FUNNEL).await?;
-        let filtered = self.filter_deals(&leads).await?;
-        for lead in filtered {
-            info!("{}", lead);
-        }
+        let filtered = leads
+            .into_iter()
+            .filter(|l| {
+                let house = l.val_to_str("Дом");
+                house.contains("Дом №13") || house.contains("Дом №14") || house.contains("Дом №15")
+            })
+            .collect::<Vec<_>>();
+        let _ = self.process_deals(&filtered).await?;
         Ok(())
     }
     async fn get_funnel_leads(&self, funnel_id: i64) -> Result<Vec<Lead>> {
@@ -93,6 +106,48 @@ pub trait AmoClient {
         println!("Finished in {:?}", start.elapsed());
 
         Ok(bad_leads)
+    }
+
+    async fn process_deals(&self, leads: &[Lead]) -> Result<()> {
+        let base_url = self.base_url();
+        let token = self.token().to_string();
+
+        let start = tokio::time::Instant::now();
+
+        for lead in leads {
+            // info!("{}", lead);
+
+            for i in lead._embedded.contacts.iter() {
+                let contact_id = i.id;
+                let contact_option = get_contact_by_id(&base_url, &token, contact_id).await?;
+                match contact_option {
+                    Some(raw) => {
+                        let first_name = raw.val_to_str("Имя");
+                        let middle_name = raw.val_to_str("Отчество");
+                        let last_name = raw.val_to_str("Фамилия");
+                        let phone = raw.val_to_str("Телефон");
+                        let email = raw.val_to_str("Email");
+                        let owner = raw.val_to_owner();
+                        let c = ContactForExport {
+                            first_name,
+                            middle_name,
+                            last_name,
+                            phone,
+                            email,
+                            client_id: lead.val_to_str("ID Помещения").parse().unwrap(),
+                        };
+                        if owner {
+                            println!("{:#?}", c);
+                        }
+                    }
+                    None => {}
+                }
+                sleep(Duration::from_millis(100)).await;
+            }
+        }
+        println!("Finished in {:?}", start.elapsed());
+
+        Ok(())
     }
 
     fn pipeline_id(&self) -> i64;
