@@ -9,6 +9,8 @@ pub enum Error {
     Funnels(String),
     GetContactFailed(String),
     Profitbase(profit::Error),
+    // -- serde
+    SerdeJson(serde_json::error::Error),
 }
 
 // region:    ---From
@@ -21,6 +23,12 @@ impl From<reqwest::Error> for Error {
 impl From<profit::Error> for Error {
     fn from(e: profit::Error) -> Self {
         Error::Profitbase(e)
+    }
+}
+
+impl From<serde_json::Error> for Error {
+    fn from(value: serde_json::Error) -> Error {
+        Error::SerdeJson(value)
     }
 }
 // endregion: ---From

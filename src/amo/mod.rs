@@ -1,4 +1,6 @@
-use crate::amo::data_types::leads::{Contact, ContactForExport, Lead, Leads, RawContact};
+use crate::amo::data_types::leads::{
+    Contact, ContactForExport, Lead, Leads, RawContact, RawContacts,
+};
 pub(crate) use crate::amo::error::{Error, Result};
 use crate::config::config;
 use crate::profit::ProfitbaseClient;
@@ -28,14 +30,15 @@ pub trait AmoClient {
 
     async fn collect_contacts(&self) -> Result<()> {
         let leads = self.get_funnel_leads(config().FUNNEL).await?;
-        let filtered = leads
-            .into_iter()
-            .filter(|l| {
-                let house = l.val_to_str("Дом");
-                house.contains("Дом №13") || house.contains("Дом №14") || house.contains("Дом №15")
-            })
-            .collect::<Vec<_>>();
-        let _ = self.process_deals(&filtered).await?;
+        // let filtered = leads
+        //     .into_iter()
+        //     .filter(|l| {
+        //         let house = l.val_to_str("Дом");
+        //         house.contains("Дом №13") || house.contains("Дом №14") || house.contains("Дом №15")
+        //     })
+        //     .collect::<Vec<_>>();
+        // let _ = self.process_deals(&filtered).await?;
+        let _ = self.process_deals(&leads).await?;
         Ok(())
     }
     async fn get_funnel_leads(&self, funnel_id: i64) -> Result<Vec<Lead>> {
@@ -45,6 +48,7 @@ pub trait AmoClient {
             self.pipeline_id(),
             funnel_id
         );
+        info!("first call url: {}", url);
         let client = Client::new()
             .get(&url)
             .header("Authorization", format!("Bearer {}", self.token()));
@@ -54,8 +58,10 @@ pub trait AmoClient {
 
         let mut next = data._links.next.take();
         while next.is_some() {
+            let url = next.as_ref().unwrap().href.to_string();
+            info!("next call url: {}", url);
             let client = Client::new()
-                .get(next.as_ref().unwrap().href.to_string())
+                .get(url)
                 .header("Authorization", format!("Bearer {}", self.token()));
             let mut data = client.send().await?.json::<Leads>().await?;
 
@@ -114,6 +120,7 @@ pub trait AmoClient {
 
         let start = tokio::time::Instant::now();
 
+        let mut all_contacts = vec![];
         for lead in leads {
             // info!("{}", lead);
 
@@ -138,6 +145,7 @@ pub trait AmoClient {
                         };
                         if owner {
                             println!("{:#?}", c);
+                            all_contacts.push(c);
                         }
                     }
                     None => {}
@@ -145,6 +153,10 @@ pub trait AmoClient {
                 sleep(Duration::from_millis(100)).await;
             }
         }
+
+        let res = serde_json::to_value(&all_contacts)?;
+        println!("res {:?}", serde_json::to_string_pretty(&res)?);
+
         println!("Finished in {:?}", start.elapsed());
 
         Ok(())
@@ -162,6 +174,7 @@ async fn get_contact_by_id(
     contact_id: i64,
 ) -> Result<Option<RawContact>> {
     let url = format!("{}contacts/{}", base_url, contact_id);
+    info!("get contact by id: {}", url);
     let client = Client::new()
         .get(&url)
         .header("Authorization", format!("Bearer {token}"));

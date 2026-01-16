@@ -1,5 +1,5 @@
 use crate::profit::ProfitData;
-use serde::{Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::fmt::{Display, Formatter};
 
 #[derive(Deserialize, Debug, Clone)]
@@ -167,13 +167,19 @@ pub struct Contact {
     pub doc_number: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct ContactForExport {
+    #[serde(rename = "Name")]
     pub first_name: String,
+    #[serde(rename = "Surname")]
     pub last_name: String,
+    #[serde(rename = "Patronymic")]
     pub middle_name: String,
+    #[serde(rename = "Phone")]
     pub phone: String,
+    #[serde(rename = "Email")]
     pub email: String,
+    #[serde(rename = "Clientid")]
     pub client_id: i64,
 }
 
@@ -268,4 +274,15 @@ impl From<VecRawData> for Vec<RawDataFlat> {
         }
         res
     }
+}
+
+#[derive(Deserialize, Debug)]
+pub struct RawContacts {
+    pub _links: Links,
+    pub _embedded: EmbeddedContacts,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct EmbeddedContacts {
+    pub contacts: Vec<RawContact>,
 }

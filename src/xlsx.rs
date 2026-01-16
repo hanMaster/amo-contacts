@@ -164,6 +164,9 @@ mod tests {
                     last_name: "Пупкин".to_string(),
                     phone: "+79244567895".to_string(),
                     email: "abc@mail.ru".to_string(),
+                    doc_type: "".to_string(),
+                    doc_serial: "".to_string(),
+                    doc_number: "".to_string(),
                 },
             },
         };
@@ -180,6 +183,9 @@ mod tests {
                     last_name: "Пупкина".to_string(),
                     phone: "+79244567896".to_string(),
                     email: "def@mail.ru".to_string(),
+                    doc_type: "".to_string(),
+                    doc_serial: "".to_string(),
+                    doc_number: "".to_string(),
                 },
             },
         };
