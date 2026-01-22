@@ -11,6 +11,7 @@ pub enum Error {
     Profitbase(profit::Error),
     // -- serde
     SerdeJson(serde_json::error::Error),
+    Io(std::io::Error),
 }
 
 // region:    ---From
@@ -31,6 +32,13 @@ impl From<serde_json::Error> for Error {
         Error::SerdeJson(value)
     }
 }
+
+impl From<std::io::Error> for Error {
+    fn from(value: std::io::Error) -> Self {
+        Error::Io(value)
+    }
+}
+
 // endregion: ---From
 
 // region:    --- Error boilerplate

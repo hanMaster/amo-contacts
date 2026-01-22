@@ -145,6 +145,8 @@ impl From<FlexibleType> for bool {
 
 #[derive(Debug, Deserialize)]
 pub struct RawContact {
+    pub id: i64,
+    #[serde(deserialize_with = "null_to_default")]
     pub custom_fields_values: Vec<CustomField>,
 }
 
@@ -181,6 +183,23 @@ pub struct ContactForExport {
     pub email: String,
     #[serde(rename = "Clientid")]
     pub client_id: i64,
+    #[serde(skip)]
+    pub owner: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct FinalData {
+    pub users: Vec<ContactForExport>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct LeadInfo {
+    pub profit_id: String,
+    pub lead_id: u64,
+    pub project: String,
+    pub house: String,
+    pub property_type: String,
+    pub property_num: String,
 }
 
 impl From<RawContact> for Contact {

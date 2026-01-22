@@ -20,7 +20,10 @@ async fn main() -> Result<()> {
     let client = AmoCityClient::new();
     // let data = client.get_funnel_leads(config().FUNNEL).await?;
     // client.check_contacts().await?;
+    
     client.collect_contacts().await?;
+    // client.collect_leads().await?;
+    
     // Xlsx::create("Передача ЖК", data)?;
 
     Ok(())
