@@ -186,6 +186,11 @@ pub trait AmoClient {
                     let last_name = raw.val_to_str("Фамилия");
                     let phone = raw.val_to_str("Телефон");
                     let email = raw.val_to_str("Email");
+
+                    if !is_valid_email(&email) {
+                        info!("invalid email in contact {}", raw.id);
+                    }
+
                     let c = ContactForExport {
                         first_name,
                         middle_name,
@@ -259,8 +264,8 @@ async fn get_all_contacts(
     for batch in contact_ids.chunks(250) {
         let url = gen_contacts_url(base_url, batch);
         info!(
-            "get contact by id: {}",
-            url.chars().take(100).collect::<String>()
+            "fetch contacts batch: {}",
+            url.chars().take(64).collect::<String>()
         );
 
         let client = Client::new()
