@@ -197,7 +197,7 @@ pub trait AmoClient {
                         last_name,
                         phone,
                         email,
-                        client_id: lead.val_to_str("ID Помещения").parse().unwrap(),
+                        client_id: lead.val_to_str("ID Помещения").parse().unwrap_or(0),
                         owner,
                     };
                     final_contacts.push(c);
