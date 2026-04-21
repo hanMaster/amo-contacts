@@ -276,6 +276,11 @@ pub struct ProfitWithContact {
     pub profit_data: ProfitData,
     pub contact: ContactInfo,
 }
+#[derive(Debug, Clone)]
+pub struct Ids {
+    pub lead_id: u64,
+    pub profit_id: String,
+}
 
 impl From<VecRawData> for Vec<RawDataFlat> {
     fn from(value: VecRawData) -> Self {

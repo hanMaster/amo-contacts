@@ -1,6 +1,4 @@
-use crate::amo::data_types::leads::{
-    Contact, ContactForExport, FinalData, Lead, LeadInfo, Leads, RawContact, RawContacts,
-};
+use crate::amo::data_types::leads::{Contact, ContactForExport, FinalData, Ids, Lead, LeadInfo, Leads, RawContact, RawContacts};
 pub(crate) use crate::amo::error::{Error, Result};
 use crate::config::config;
 use crate::profit::ProfitbaseClient;
@@ -9,11 +7,16 @@ use regex::Regex;
 use reqwest::{Client, StatusCode};
 use std::collections::HashSet;
 use std::time::Duration;
+use serde_json::json;
 use tokio::fs;
 use tokio::time::sleep;
+use crate::amo::files::get_profit_ids;
+use crate::xlsx::Xlsx;
 
 pub(crate) mod data_types;
 mod error;
+
+mod files;
 
 pub mod city_impl;
 
@@ -48,6 +51,7 @@ pub trait AmoClient {
 
     async fn collect_leads(&self) -> Result<()> {
         let leads = self.get_funnel_leads(config().FUNNEL).await?;
+        let profit_ids = get_profit_ids()?;
         let parsed = leads
             .into_iter()
             .map(|l| {
@@ -66,9 +70,7 @@ pub trait AmoClient {
                 }
             })
             .filter(|l| {
-                // l.house.contains("Дом №5") &&
-                //     l.project.contains("DNS")
-                l.project.contains("Формат")
+                    !profit_ids.contains(&l.profit_id)
             })
             .collect::<Vec<_>>();
 
@@ -79,6 +81,55 @@ pub trait AmoClient {
         fs::write("leads.json", data.as_bytes()).await?;
 
         Ok(())
+    }    
+    
+    async fn collect_leads_xls(&self) -> Result<Vec<LeadInfo>> {
+        let leads = self.get_funnel_leads(config().FUNNEL).await?;
+        let profit_ids = get_profit_ids()?;
+        let parsed = leads
+            .into_iter()
+            .map(|l| {
+                let house = l.val_to_str("Дом");
+                let project = l.val_to_str("ЖК");
+                let property_type = l.val_to_str("Тип помещения");
+                let property_num = l.val_to_str("Номер помещения");
+                let profit_id = l.val_to_str("ID Помещения");
+                LeadInfo {
+                    profit_id,
+                    lead_id: l.id,
+                    project,
+                    house,
+                    property_type,
+                    property_num,
+                }
+            })
+            .filter(|l| {
+                    !profit_ids.contains(&l.profit_id)
+            })
+            .collect::<Vec<_>>();
+
+        println!("Collected leads: {}", parsed.len());
+        Ok(parsed)
+    }
+
+    async fn collect_lead_ids(&self) -> Result<Vec<Ids>> {
+        let leads = self.get_funnel_leads(config().FUNNEL).await?;
+        let profit_ids = get_profit_ids()?;
+        let parsed = leads
+            .into_iter()
+            .map(|l| {
+                let profit_id = l.val_to_str("ID Помещения");
+                Ids {
+                    lead_id: l.id,
+                    profit_id,
+                }
+            })
+            .filter(|item| profit_ids.contains(&item.profit_id))
+            .collect::<Vec<_>>();
+
+        println!("Collected leads: {}", parsed.len());
+
+        Ok(parsed)
     }
 
     async fn get_funnel_leads(&self, funnel_id: i64) -> Result<Vec<Lead>> {
@@ -223,6 +274,30 @@ pub trait AmoClient {
     fn profitbase_client(&self) -> &ProfitbaseClient;
 
     fn token(&self) -> &str;
+
+    async fn move_to_sold(&self, lead_id: u64) -> Result<()> {
+        let url = format!(
+            "{}leads/{}",
+            self.base_url(),
+            lead_id
+        );
+        info!("moving lead: {}", lead_id);
+
+        // 142 == Успешно реализовано
+        // 80709866 == Передача ЖК
+        let payload = json!({"status_id": 142});
+        let client = Client::new()
+            .patch(&url)
+            .header("Authorization", format!("Bearer {}", self.token()))
+            .json(&payload);
+        let response = client.send().await?;
+        match response.status() {
+            StatusCode::OK => info!("moved {} Successfully", lead_id),
+            _ => error!("move {} Failed", lead_id),
+        }
+
+        Ok(())
+    }
 }
 
 async fn get_contact_by_id(
